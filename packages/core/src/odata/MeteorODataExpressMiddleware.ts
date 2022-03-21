@@ -294,14 +294,24 @@ const createObjectData = async function (req: Request, res: Response) {
 
 const getObjectData = async function (req: Request, res: Response) {
     let userSession = req.user;
+
+    /* yupeng urlParams 样例
+    {
+        objectName: "firstobject__c",
+        _id: "623324324324324234"
+    }
+
+    */
     let urlParams = req.params;
     let queryParams = req.query;
     let key = urlParams.objectName;
     let spaceId = userSession.spaceId;
 
-    // yupeng: recordId 格式可能为 ********** 或 ********_expand() 表示从另一个对象扩展
+    // yupeng: recordId 格式可能为 ********** 或 ********_expand() 表示：这条记录是从另一个对象的某条记录扩展而来
     let recordId = urlParams._id;
     let setErrorMessage = getODataManager().setErrorMessage;
+
+    // yupeng?: 这种场景没看到，不知道包的格式是啥样的
     if (key.indexOf("(") > -1) {
         let body = {};
         let collectionInfo = key;

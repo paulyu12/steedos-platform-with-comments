@@ -39,6 +39,9 @@ export async function createObjectData(req, res) {
    }
 }
 export async function getObjectData(req, res) {
+
+   // yupeng: 是否是 meteorDriver 是与 object 本身相关的，object 本身加载进来的时候会设置操作该对象的 driver。
+   // yupeng: 自定义对象都是 meteorDrive，标准对象有些不是 meteordriver 如 app 表
    const isMeteorDriver = await _isMeteorDriver(req);
    if (isMeteorDriver) {
       return await meteorODataExpressMiddleware.getObjectData(req, res);
