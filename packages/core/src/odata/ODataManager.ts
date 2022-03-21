@@ -127,10 +127,13 @@ export class ODataManager {
     }
     let obj = this.getObject(key);
 
+    // yupeng: 对于 createQuery 中的 includes 列表字段，遍历 includes 列表字段
     for (let i = 0; i < createQuery.includes.length; i++) {
       let navigationProperty = createQuery.includes[i].navigationProperty;
       navigationProperty = navigationProperty.replace('/', '.')
       // let field = obj.fields[navigationProperty].toConfig();
+
+      // yupeng: 去 object_fields 表中取出该字段的信息
       let field = await obj.getField(navigationProperty);
       if (field && (field.type === 'lookup' || field.type === 'master_detail')) {
         if (_.isFunction(field.reference_to)) {
