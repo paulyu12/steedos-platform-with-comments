@@ -168,6 +168,7 @@ module.exports = {
 			// const logger = this.logger;
 			await Future.task(() => {
 				try {
+					// yupeng?: 位于 /packages/meteor-bundle-runner/src/boot.js
 					this.meteor.loadServerBundles();
 					const steedosSchema = require('@steedos/objectql').getSteedosSchema(this.broker);
 					this.wrapAsync(this.startStandardObjectsPackageLoader, {});
@@ -181,6 +182,8 @@ module.exports = {
 					Future.fromPromise(this.steedos.init(this.settings)).wait();
 					this.WebApp = WebApp;
 					this.startNodeRedService();
+
+					// yupeng: 位于 /packages/meteor-bundle-runner/src/boot.js
 					this.meteor.callStartupHooks();
 					this.meteor.runMain();
 				} catch (error) {

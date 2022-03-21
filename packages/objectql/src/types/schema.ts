@@ -61,6 +61,8 @@ export class SteedosSchema {
     }
 
     addDataSourceFromSteedosConfig() {
+
+        // yupeng: getSteedosConfig 的内容来自 steedos-projects/project-community/steedos-config.yml
         let config: any = getSteedosConfig();
         if (config && config.datasources) {
             _.each(config.datasources, (datasource: any, datasource_name: string) => {
@@ -125,6 +127,8 @@ export class SteedosSchema {
           return;
         }
         let args = name.split('.')
+
+        // yupeng: 如果传过来的参数中不包含 datasource 信息，则需要使用 getObjectMap 函数来确定
         if (args.length == 1) {
             object_name = name
             let objectMap = this.getObjectMap(name);
@@ -136,7 +140,7 @@ export class SteedosSchema {
         }
         if (args.length > 1) {
             datasource_name = args[0]
-            object_name = _.rest(args).join('.')
+            object_name = _.rest(args).join('.')   // yupeng: 除去 datasource 前缀后，剩余的部分使用 . 进行拼接
         }
 
         let datasource = this.getDataSource(datasource_name)

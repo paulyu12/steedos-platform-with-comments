@@ -593,11 +593,14 @@ module.exports = {
 		try {
 			const packagePath = path.join(process.cwd(), 'steedos-app');
 			const packageInfo = require(path.join(packagePath, 'package.json'));
+
+			// yupeng: 这里是将 steedos-app 目录下的软件包（也就是默认软件包）的配置信息（package.json）写入到 .steedos/steedos-packages.yml 文件中
 			loader.appendToPackagesConfig(`${packageInfo.name}`, {version: packageInfo.version, description: packageInfo.description, local: true, path: util.getPackageRelativePath(process.cwd(), packagePath)});
 		} catch (error) {
 			console.log(`started error`, error)
 		}
 
+		// yupeng: 这里处理 steedos-packages/*.package 形式的压缩包，系统将该目录下的 *.package 文件认为是压缩的软件包，解压处理后将其 package.json 中的配置信息添加到 .steedos/steedos-packages.yml 文件中
 		await metadata.uncompressPackages(process.cwd());
 		const mPackages = metadata.getAllPackages(process.cwd());
 		_.each(mPackages, (packagePath)=>{
@@ -608,6 +611,8 @@ module.exports = {
 				console.log(`started error`, error)
 			}
 		})
+
+		// yupeng: 这里根据 .steedos/steedos-packages.yml 中的软件包信息，对本地软件包进行统一加载（local = true & local = false）
 		await loader.loadPackages();
 
 		//注册本地已安装的steedos packages

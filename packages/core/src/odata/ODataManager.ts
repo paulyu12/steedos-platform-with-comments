@@ -537,6 +537,9 @@ export class ODataManager {
 
   // 修改、删除时，如果 doc.space = "global"，报错
   async checkGlobalRecord(collection: any, id: string, object: any) {
+
+    // yupeng: 对象的 enable_space_global = true 
+    // yupeng: 且：在该 collection 中 `(_id eq '${id}') and (space eq 'global')` 的记录存在
     if (object.enable_space_global && await collection.count({ filters: `(_id eq '${id}') and (space eq 'global')` })) {
       throw new Error("不能修改或者删除标准对象");
     }

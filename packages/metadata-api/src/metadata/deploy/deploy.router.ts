@@ -29,6 +29,8 @@ const uploadMetadata = async function (req, res) {
     //     return res.status(403).send({ status: 'error', message: 'Please upgrade the platform license to Enterprise Edition' });
     // }
 
+
+    // yupeng: req.body.file 是一个 base64 编码之后的 zip 文件
     const dataBuffer = Buffer.from(req.body.file, 'base64');
 
     //console.log(dataBuffer);
@@ -43,7 +45,7 @@ const uploadMetadata = async function (req, res) {
 
     var zipDir = path.join(tempDir, 'deploy.zip');
 
-    // console.log(tempDir);
+    // yupeng: 在服务器上建一个临时目录，先将压缩文件写到临时目录下面的 deploy.zip 文件
     fs.writeFileSync(zipDir, dataBuffer);
     var resMsg = {
         status: '', 
@@ -52,6 +54,23 @@ const uploadMetadata = async function (req, res) {
     
     var dbManager = new DbManager(userSession);
     try {
+        /* yupeng: SteedosPackage 返回一个对象，形如
+        {
+            CustomObject: {
+                ...,
+                CustomField: {
+
+                },
+                CustomPermission: {
+
+                }
+            },
+            CustomPermissionset: {
+
+            },
+            ...
+        }
+        */
         let SteedosPackage = await loadFileToJson(tempDir);
 
         // console.log('SteedosPackageJson=', SteedosPackage);
@@ -78,6 +97,8 @@ const uploadMetadata = async function (req, res) {
                     const object = objects[objectName];
                     const fields = object[TypeInfoKeys.Field];
                     let masterDetailCount = 0;
+
+                    // yupeng: 同一个对象中 master_detail 字段的数量不能超过 2 个
                     for(const FieldName in fields){
                         const field = fields[FieldName];
                         if(field['type'] == 'master_detail'){
@@ -92,6 +113,8 @@ const uploadMetadata = async function (req, res) {
         
         await dbManager.connect();
         var session = await dbManager.startSession();
+
+        // yupeng: 数据库事务，将 json 对象批量插入到 mongo 数据库中
         await jsonToDb(SteedosPackage, dbManager, session);
         
         resMsg.status = "200";

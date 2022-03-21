@@ -615,6 +615,7 @@ export class SteedosObjectType extends SteedosObjectProperties {
             throw new Error('userSession is required')
         }
 
+        // yupeng: 一个用户可能有多个角色，这里返回一个列表
         let roles = userSession.roles
         let objectRolesPermission = this.getObjectRolesPermission(userSession.spaceId)
 
@@ -653,6 +654,7 @@ export class SteedosObjectType extends SteedosObjectProperties {
             rolesFieldsPermission = await FieldPermission.getObjectFieldsPermissionGroupRole(this.name);
         }
 
+        // yupeng: 对于当前用户所属的每个角色，判断对该对象权限
         roles.forEach((role) => {
             let rolePermission = objectRolesPermission[role];
             if (rolePermission) {
@@ -707,6 +709,7 @@ export class SteedosObjectType extends SteedosObjectProperties {
             }
         });
 
+        // yupeng: 判断字段权限
         const field_permissions = {};
         if (userObjectPermission.field_permissions) {
             _.each(userObjectPermission.field_permissions, (field_permission) => {
@@ -797,7 +800,11 @@ export class SteedosObjectType extends SteedosObjectProperties {
     // 此函数支持driver: MeteorMongo
     async aggregate(query: SteedosQueryOptions, externalPipeline, userSession?: SteedosUserSession) {
         let clonedQuery = Object.assign({}, query);
+
+        // yupeng: 根据 userSession 的权限，过滤掉不可读取的字段
         await this.processUnreadableField(userSession, clonedQuery);
+
+        // yupeng: callAdapter 实际去执行校验规则、操作数据库、执行触发器脚本
         return await this.callAdapter('aggregate', this.table_name, clonedQuery, externalPipeline, userSession)
     }
 
@@ -1485,10 +1492,15 @@ export class SteedosObjectType extends SteedosObjectProperties {
 
     private async callAdapter(method: string, ...args: any[]) {
 
+        // yupeng: 判断该 method 是否是 _datasource 的一个方法（function）
+        // yupeng: 我们的例子中 adapterMethod = "aggregate"
         const adapterMethod = this._datasource[method];
         if (typeof adapterMethod !== 'function') {
             throw new Error('Adapted does not support "' + method + '" method');
         }
+
+        // yupeng: args[args.length - 1] 表示最后一个参数，这里要求调用者传参是最后一个参数必须传 userSession
+        // yupeng: 判断用户是否有执行该方法的权限
         let allow = await this.allow(method, args[args.length - 1])
         if (!allow) {
             throw new Error('not find permission')
@@ -1521,25 +1533,34 @@ export class SteedosObjectType extends SteedosObjectProperties {
 
         let returnValue: any;
         let userSession: SteedosUserSession;
+
+        // directCURD 不考虑执行触发器逻辑
         if (this.isDirectCRUD(method)) {
             userSession = args[args.length - 1]
             args.splice(args.length - 1, 1, userSession ? userSession.userId : undefined)
             returnValue = await adapterMethod.apply(this._datasource, args);
         } else {
             userSession = args[args.length - 1]
+
+            // yupeng: 这里执行 beforeTrigger 脚本
             let beforeTriggerContext = await this.getTriggerContext('before', method, args)
             if (paramRecordId) {
                 beforeTriggerContext = Object.assign({} , beforeTriggerContext, { id: paramRecordId });
             }
             await this.runBeforeTriggers(method, beforeTriggerContext)
+
+            // yupeng：这里执行校验规则
             await runValidationRules(method, beforeTriggerContext, args[0], userSession)
 
+            // yupeng: 这里获取 afterTrigger 上下文
             let afterTriggerContext = await this.getTriggerContext('after', method, args, paramRecordId)
             if (paramRecordId) {
                 afterTriggerContext = Object.assign({}, afterTriggerContext, { id: paramRecordId });
             }
             let previousDoc = clone(afterTriggerContext.previousDoc);
             args.splice(args.length - 1, 1, userSession ? userSession.userId : undefined)
+
+            // yupeng：这里调用 this._datasource 的方法如 aggregate 操作数据库，参数为 args
             returnValue = await adapterMethod.apply(this._datasource, args);
             if (method === 'find' || method == 'findOne' || method == 'count' || method == 'aggregate' || method == 'aggregatePrefixalPipeline') {
                 let values = returnValue || {}
@@ -1557,7 +1578,7 @@ export class SteedosObjectType extends SteedosObjectProperties {
                 }
                 Object.assign(afterTriggerContext, { data: { values: values } })
             }
-            // console.log("==returnValue==", returnValue);
+            // yupeng：执行 afterTrigger 脚本
             if(method == 'insert' && _.has(returnValue, '_id')){
                 afterTriggerContext.doc = returnValue;
                 afterTriggerContext = Object.assign({}, afterTriggerContext, { id: returnValue._id });
@@ -1592,6 +1613,8 @@ export class SteedosObjectType extends SteedosObjectProperties {
                     recordId = <string>doc._id;
                 }
                 // 一定要先运行公式再运行汇总，以下两个函数顺序不能反
+
+                // yupeng：操作对象上可能有的公式字段
                 await this.runRecordFormula(method, objectName, recordId, doc, userSession);
                 await this.runRecordSummaries(method, objectName, recordId, doc, previousDoc, userSession);
             }

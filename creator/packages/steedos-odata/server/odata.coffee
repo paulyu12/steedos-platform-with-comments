@@ -1,3 +1,6 @@
+# yupeng: https://docs.meteor.com/api/core.html#Meteor-startup
+# yupeng: meteor app file loaded 之后，会自动调用 Meteor.startup 中的函数
+
 Meteor.startup ->
 	MeteorODataRouter = require('@steedos/core').MeteorODataRouter;
 	ODataRouter = require('@steedos/core').ODataRouter

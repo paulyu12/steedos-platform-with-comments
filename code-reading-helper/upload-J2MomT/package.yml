@@ -1,0 +1,11 @@
+CustomField:
+  - firstobject__c.firstfield__c
+  - firstobject__c.name
+CustomObject:
+  - firstobject__c
+CustomListview:
+  - firstobject__c.all
+  - firstobject__c.recent
+CustomPermission:
+  - firstobject__c.admin
+  - firstobject__c.user

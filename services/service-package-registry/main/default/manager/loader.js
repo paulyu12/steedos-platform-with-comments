@@ -53,6 +53,8 @@ const loadPackages = async ()=>{
     for (const packageName in packages) {
         const package = packages[packageName]
         if(package.enable){
+
+            // yupeng: 远程的软件包，拉取后进行安装
             if(package.local !== true){
                 try {
                     const packagePath = path.dirname(require.resolve(`${packageName}/package.json`, {
@@ -70,6 +72,7 @@ const loadPackages = async ()=>{
                         console.error(error)
                     }
                 }
+            // yupeng: 本地软件包直接安装
             }else if(package.local === true){
                 let packagePath = package.path;
                 if(!path.isAbsolute(packagePath)){

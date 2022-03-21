@@ -14,6 +14,15 @@ interface Request extends core.Request {
 
 const getObjectList = async function (req: Request, res: Response) {
     try {
+        /* yupeng: 参数样例
+        userId: "622f79fb66e225001e073ca8"
+        urlParams: {
+            objectName: "objects",
+        }
+        queryParams: {
+            $select: "label,created,name,enable_search,owner,company_id,company_ids,locked",
+        }
+        */
         let userSession = req.user;
         let userId = userSession.userId;
         let urlParams = req.params;
@@ -21,6 +30,9 @@ const getObjectList = async function (req: Request, res: Response) {
 
         let key = urlParams.objectName;
         let spaceId = userSession.spaceId;
+
+        // yupeng: 返回一个关于该对象的 SteedosObjectType 的实例，包含在该对象上的所有方法
+        // yupeng: 代码位置 \packages\objectql\src\types\object.ts
         let collection = getCreator().getSteedosSchema().getObject(key);
         let setErrorMessage = getODataManager().setErrorMessage;
 
@@ -28,8 +40,13 @@ const getObjectList = async function (req: Request, res: Response) {
             res.status(401).send(setErrorMessage(404, collection, key))
         }
 
+        // yupeng: $filter 参数中不允许使用 tolower() 方法，这里将其从 $filter 中移除
         getODataManager().removeInvalidMethod(queryParams);
+
+        // yupeng: 这里对 queryParams 进行解码，防止有 %20 等编码后的字符
         let qs = decodeURIComponent(querystring.stringify(queryParams as querystring.ParsedUrlQueryInput));
+
+        // yupeng: createQuery 是 odata-v4-mongodb 库的方法，这里用来格式化 query，便于后面处理
         if (qs) {
             var createQuery = odataV4Mongodb.createQuery(qs);
         } else {
@@ -40,6 +57,8 @@ const getObjectList = async function (req: Request, res: Response) {
                 includes: []
             };
         }
+
+        // yupeng: 获取对象权限
         let permissions = await collection.getUserObjectPermission(userSession);
         if (permissions.viewAllRecords || (permissions.viewCompanyRecords) || (permissions.allowRead && userId)) {
             let entities = [];
@@ -52,6 +71,7 @@ const getObjectList = async function (req: Request, res: Response) {
 
             filters = getODataManager().excludeDeleted(filters);
 
+            // yupeng: 处理 top, skip, sort 子句
             if (queryParams.$top !== '0') {
                 let query = { filters: filters, fields: fields, top: Number(queryParams.$top) };
                 if (queryParams.hasOwnProperty('$skip')) {
@@ -60,11 +80,36 @@ const getObjectList = async function (req: Request, res: Response) {
                 if (queryParams.$orderby) {
                     query['sort'] = queryParams.$orderby;
                 }
+
+                // yupeng: 这里处理 lookup 或 master-detail 字段关联的子表。要求 createQuery 对象中有 includes 字段
+                /* ypueng: 返回样例
+                [
+                    {
+                        from: ,
+                        localField: ,
+                        foreignField: ,
+                        as: `${refFieldName}_$lookup`
+                    },
+                    {
+                        from: ,
+                        localField: ,
+                        foreignField: ,
+                        as: `${refFieldName}_$lookup`
+                    },
+                ]
+
+                */
                 let externalPipeline = await getODataManager().makeAggregateLookup(createQuery, key, spaceId, userSession);
+
+                // yupeng: mongo 培训中有讲到的一种 mongo 查询方式，可以完全替代 find, update, insert 等特殊用法
                 entities = await collection.aggregate(query, externalPipeline, userSession);
             }
             if (entities) {
+
+                // yupeng: 处理子表查询
                 entities = await getODataManager().dealWithAggregateLookup(createQuery, entities, key, spaceId, userSession);
+
+                // yupeng: 构造 odata 返回报文
                 let body = {};
                 body['@odata.context'] = getCreator().getODataContextPath(spaceId, key);
                 if (queryParams.$count != 'false') {
@@ -104,14 +149,25 @@ const getObjectRecent = async function (req: Request, res: Response) {
         let permissions = await collection.getUserObjectPermission(userSession);
         if (permissions.allowRead) {
             let recent_view_collection = getCreator().getSteedosSchema().getObject('object_recent_viewed');
+
+            // yupeng：过滤条件：由 userId 用户创建的，object_recent_viewed 表中 record.o 为 key 的记录（意为 record.owner = `key`）
             let filterstr = `(record/o eq '${key}') and (created_by eq '${userId}')`;
             let recent_view_options: any = { filters: filterstr, fields: ['record'], sort: 'created desc' };
             let recent_view_records = await recent_view_collection.find(recent_view_options, userSession);
             let odataCount = recent_view_records.length;
+
+            // yupeng：_.pluck 函数从返回的结果数组 recent_view_records 中获取 record 字段
             let recent_view_records_ids: any = _.pluck(recent_view_records, 'record');
             recent_view_records_ids = recent_view_records_ids.getProperty('ids');
+
+            // yupeng：由于 ids 字段也是个数组，_.flatten 方法能够递归地遍历所有子数组，然后整理成一个一级的数组并返回
+            // yupeng: _.uniq 去重
             recent_view_records_ids = _.flatten(recent_view_records_ids);
             recent_view_records_ids = _.uniq(recent_view_records_ids);
+
+            // yupeng: 至此，拿到了所有需要查询的记录 id，保存在 recent_view_records_ids 中
+            // yupeng: 下面，将要去对应的对象表中，将这些记录查找出来
+
             getODataManager().removeInvalidMethod(queryParams);
             let qs = decodeURIComponent(querystring.stringify(queryParams as querystring.ParsedUrlQueryInput));
             if (qs) {
@@ -198,12 +254,16 @@ const createObjectData = async function (req: Request, res: Response) {
         let bodyParams = req.body;
         let key = urlParams.objectName;
         let spaceId = userSession.spaceId;
+
+        // yupeng: 获取 SteedosSchema，里面定义了一堆操作对象的方法。供全局使用
         let collection = getCreator().getSteedosSchema().getObject(key);
         let setErrorMessage = getODataManager().setErrorMessage;
 
         if (!collection) {
             res.status(401).send(setErrorMessage(404, collection, key));
         }
+
+        // yupeng：
         let permissions = await collection.getUserObjectPermission(userSession);
         if (permissions.allowCreate) {
             bodyParams.space = spaceId;
@@ -211,6 +271,8 @@ const createObjectData = async function (req: Request, res: Response) {
                 delete bodyParams.space;
             }
             let entity = await collection.insert(bodyParams, userSession);
+
+            // yupeng: 构造返回报文
             let entities = [];
             if (entity) {
                 let body = {};
@@ -236,14 +298,18 @@ const getObjectData = async function (req: Request, res: Response) {
     let queryParams = req.query;
     let key = urlParams.objectName;
     let spaceId = userSession.spaceId;
+
+    // yupeng: recordId 格式可能为 ********** 或 ********_expand() 表示从另一个对象扩展
     let recordId = urlParams._id;
     let setErrorMessage = getODataManager().setErrorMessage;
     if (key.indexOf("(") > -1) {
         let body = {};
         let collectionInfo = key;
-        let fieldName = recordId.split('_expand')[0];
+        let fieldName = recordId.split('_expand')[0];  // yupeng: 某个 field 可能是带有 expand，是指向另一个对象
         let collectionInfoSplit = collectionInfo.split('(');
         let collectionName = collectionInfoSplit[0];
+
+        // yupeng: 这里的 id 拿到了 recordId 是从 id 对象扩展来的
         let id = collectionInfoSplit[1].split('\'')[1];
         let collection = getCreator().getSteedosSchema().getObject(collectionName)
         let entity = await collection.findOne(id, {
@@ -361,10 +427,13 @@ const updateObjectData = async function (req: Request, res: Response) {
         let recordId = urlParams._id;
         let setErrorMessage = getODataManager().setErrorMessage;
 
+        // yupeng: 获取"对象操作"实例
         let collection = getCreator().getSteedosSchema().getObject(key)
         if (!collection) {
             res.status(404).send(setErrorMessage(404, collection, key));
         }
+
+        // yupeng: 获取用户的对象权限
         let permissions = await collection.getUserObjectPermission(userSession);
         let record_owner = ""
         if (key == "users") {
@@ -376,11 +445,15 @@ const updateObjectData = async function (req: Request, res: Response) {
 
         let isAllowed = permissions.modifyAllRecords || (permissions.allowEdit && record_owner == userId) || (permissions.modifyCompanyRecords);
         if (isAllowed) {
+
+            // yupeng: 标准对象记录的 doc.space = 'global'，这样的记录不允许修改
             await getODataManager().checkGlobalRecord(collection, recordId, collection);
 
             let fields_editable = true;
 
             if (fields_editable) {
+
+                // yupeng: 整理要 set 的字段、要 unset 的字段，存到 data 对象中
                 let data = bodyParams.$set ? bodyParams.$set : bodyParams
                 let unsetData = bodyParams.$unset ? bodyParams.$unset : {}
                 _.each(unsetData, function (v, k) {
@@ -388,6 +461,8 @@ const updateObjectData = async function (req: Request, res: Response) {
                 })
                 let entityIsUpdated = await collection.update(recordId, data, userSession);
                 if (entityIsUpdated) {
+
+                    // yupeng: 整理应答报文
                     let entities = []
                     let body = {};
                     entities.push(entityIsUpdated);
@@ -434,8 +509,12 @@ const deleteObjectData = async function (req: Request, res: Response) {
         // let companyId = recordData.company_id;
         let isAllowed = (permissions.modifyAllRecords && permissions.allowDelete) || (permissions.modifyCompanyRecords && permissions.allowDelete) || (permissions.allowDelete && record_owner === userId);
         if (isAllowed) {
+
+            // yupeng: 不允许删除标准对象
             await getODataManager().checkGlobalRecord(collection, recordId, collection);
 
+
+            // yupeng: 该对象记录是否支持软删除
             if (collection != null ? collection.enable_trash : void 0) {
                 let entityIsUpdated = await collection.update(recordId, {
                     is_deleted: true,
@@ -480,6 +559,8 @@ const excuteObjectMethod = async function (req: Request, res: Response) {
         if (permissions.allowRead) {
             let methodName = urlParams.methodName;
             let methods = getObjectConfig(key).methods || {};
+
+            // yupeng: 判断该对象支持的操作方法，是否包含此次请求中要执行的 method
             if (methods.hasOwnProperty(methodName)) {
                 // let thisObj = {
                 //     object_name: key,
@@ -492,6 +573,8 @@ const excuteObjectMethod = async function (req: Request, res: Response) {
                 //         return getCreator().getSteedosSchema().getObject(object_name)
                 //     }
                 // }
+
+                // yupeng: 这里 methods[methodName] 是一个在 object.ts 中的函数名称，这里采用 apply 方法执行这个方法
                 methods[methodName].apply({}, [req, res])
             } else {
                 res.status(404).send(setErrorMessage(404, collection, key));

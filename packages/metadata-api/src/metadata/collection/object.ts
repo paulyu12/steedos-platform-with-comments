@@ -47,6 +47,17 @@ async function getChildProperty(steedosPackage, dbManager, objectName){
         reqYml[childMetadataName] = [propertyStr]
     }
 
+    // yupeng：递归 dbToJson 方法，取子类型的元数据。如已经拿到 object，则去取 object_field, object_permission
+    /* yupeng: reqYml 形如：
+        {
+            CustomField: [
+                "firstobject__c.*"
+            ],
+            CustomPermission: [
+                "firstobject__c.*"
+            ]
+        }
+    */
     await dbToJson(reqYml, steedosPackage, dbManager);
 }
 

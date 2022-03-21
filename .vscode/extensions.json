@@ -1,5 +1,9 @@
 {
     "recommendations": [
-        "redhat.vscode-yaml", "mongodb.mongodb-vscode", "gruntfuggly.todo-tree", "Arjun.swagger-viewer"
+        "redhat.vscode-yaml",
+        "mongodb.mongodb-vscode",
+        "gruntfuggly.todo-tree",
+        "arjun.swagger-viewer",
+        "nick-rudenko.back-n-forth"
     ]
 }

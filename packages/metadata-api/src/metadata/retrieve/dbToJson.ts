@@ -45,9 +45,21 @@ export async function dbToJson(reqYml, steedosPackage, dbManager){
     steedosPackage[TypeInfoKeys.Object] = {}
   }
 
+  /* yupeng: reqYml 样例
+  {
+    CustomObject: [
+      "firstobject__c",
+    ],
+  }
+
+  */
+
   for(const metadataName in reqYml){
 
     var container; // 当前metadata的上层容器
+
+    // yupeng: 这块写的是为了递归调用考虑的
+    // yupeng: 如果该 metadataName 具有上层容器，则该元数据放在上层元数据的层级内。否则，放在 steedosPackage 的最顶层
     if(hasParent(metadataName)){
       var parentMetadataName = getParentMetadataName(metadataName);
       container = steedosPackage[parentMetadataName]

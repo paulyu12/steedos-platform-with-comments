@@ -9,7 +9,9 @@ const object_layouts = "object_layouts";
 const collection_metadata_name = TypeInfoKeys.Field;
 
 export async function fieldsFromDb(dbManager, fieldList, objects){
-  
+  /* yupeng fieldList 参数形如：
+  ["firstobject__c.*"]
+  */
   for(var i=0; i<fieldList.length; i++){
     
     var reqStr = fieldList[i];

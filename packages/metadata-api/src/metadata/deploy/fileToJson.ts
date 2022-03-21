@@ -383,15 +383,22 @@ async function loadObjects(filePath, objectName){
         let matchedPath = matchedPaths[0];
 
         if(typeof matchedPath !== 'function'){
+
+            // yupeng: 加载对象元数据文件，如 ***.object.yml
             let json = loadFile(matchedPath);
 
+            // yupeng：校验 json 中的名字字段与 objectName 是否一致
+            // yupeng?:（这块我不确定是否必要，因为我觉得 dx 插件上传时应该保证文件内部的元数据和文件名是同一个元数据名称）
             checkNameEquals(json, objectName, matchedPath, TypeInfoKeys.Object);
 
             object = json;
+
+            // yupeng: newObjectsPath 为对象元数据 *.object.yml 所在的目录，该目录下还有与该对象有关的其他元数据，如 fields, listviews, permissionset
             newObjectsPath = matchedPath.substring(0,matchedPath.lastIndexOf('/'));
 
         }
     }else{
+        // yupeng?: 没有找到"运行该分支" 的场景
         newObjectsPath = path.join(filePath, "objects", objectName);
     }
     //fields
@@ -424,17 +431,22 @@ async function loadObjects(filePath, objectName){
 //扫描所有对象的fields并输出为json
 async function loadObjectFields(filePath){
     let fields = {};
+
+    // yupeng: glob 类似于正则表达式匹配，这里在匹配文件名。glob 默认异步，glob.sync 为它的同步方法
     let matchedPaths = glob.sync( path.join(filePath, "*.field.yml"));
 
     for(let k=0; k < matchedPaths.length; k++){
         let matchedPath = matchedPaths[k];
         let field = {};
         let json = loadFile(matchedPath);
+
+        // yupeng: 取文件名（不包含路径）
         let fieldName = matchedPath.substring(matchedPath.lastIndexOf('/')+1, matchedPath.indexOf('.field'));
 
         try {
             if(json){
 
+                // yupeng: 判断文件名是否与文件内部的 name 字段一致
                 checkNameEquals(json, fieldName, matchedPath, TypeInfoKeys.Field);
 
                 let field_ower = {};
@@ -452,12 +464,16 @@ async function loadObjectFields(filePath){
                 }else{
                     newField = json;
                 }
-                let fieldKeys = _.keys(newField);
+                let fieldKeys = _.keys(newField);  // yupeng: 该函数返回一个列表，包含newField  对象中所有 key
                 for(let m in fieldKeys){
+
                     let key = fieldKeys[m];
                     if(typeof key === 'function'){
                         continue;
                     }
+
+                    
+                    // yupeng?: 看字段属性中是否有某个属性的值是一段 function，如果有，则转成 string 后再用 function 替换 function anonymous，来保存起来 （问题：字段中的哪个属性可能是一段函数）
                     let val = newField[key];
                     if(typeof val === 'function' ){
                         newField[key] = val.toString().replace('function anonymous', 'function');
@@ -644,12 +660,15 @@ async function loadPackageYml(filePath:string){
 
 export async function loadFileToJson(packagePath:string, packageYml?){
 
+    // yupeng: 样例 zip 文件放在 C:\Users\Paul_\Desktop\steedos-platform\code-reading-helper\upload-J2MomT
     try {
         let datefilePath = path.join(packagePath,'deploy.zip');
         await compressing.zip.uncompress(datefilePath, packagePath);
     } catch (error) {
         
     }
+
+    // yupeng: 加载 zip 包整体的元信息，包括：这个zip包中有哪些元数据如 objects, fields, permissionset 等
     if(!packageYml){
         packageYml = await loadPackageYml(packagePath);
     }
@@ -676,12 +695,19 @@ export async function loadFileToJson(packagePath:string, packageYml?){
 
     for(const metadataname in packageYml){
         
+        // yupeng: metadataname 有父子关系, 如 CustomPermission（对象权限） 是 CustomObject 的儿子
+        // yupeng: 如果一个 metadataname 有父亲，那么不需要考虑它，因为遍历并加载它父亲时也会加载它
         if(hasParent(metadataname)){
             continue;
         }
 
         let values = packageYml[metadataname];// 传来的对象列表名称
+
+        // yupeng: metadataname = CustomField / CustomObject / CustomListview / CustomPermission
         if(metadataname === TypeInfoKeys.Object){
+
+            // yupeng: 如果 package.yml 文件中 CustomObject 子项中为 *，则 glob.sync 匹配到 objects 目录下所有的 *.object.yml 文件
+            // yupeng?: 目前没有发现 package.yml 中带 * 的这种情况
             if(values === '*'){
                 let matchedPaths = glob.sync(path.join(packagePath, "objects", "*", "*.object.yml"));
                 values = [];
@@ -771,7 +797,9 @@ export async function loadFileToJson(packagePath:string, packageYml?){
             mark = true;
         }
 
-    }
+    } 
+
+    // yupeng: 这里是判断如果没有上述所有基本元数据，那么可能是存在“某个对象下面的字段元数据、对象权限元数据”，则通过 getChild(TypeInfoKeys.Object) 取处理
     if(!mark){
         const childs = getChilds(TypeInfoKeys.Object);
         for(let metadataname in packageYml){

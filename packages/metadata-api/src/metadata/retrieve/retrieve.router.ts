@@ -34,6 +34,13 @@ const downloadMetadata = async function (req, res) {
         //兼容旧版steedos cli retrieve
         const yml_base64 = req.query.yml || req.body.yml  // 这里给一个steedos_package.yml格式文件的base64
 
+        /* yupeng: yml 变量样例
+        {
+            CustomObject: [
+                "firstobject__c",
+            ],
+        }
+        */
         const yml = yaml.safeLoad(Buffer.from(Buffer.from(yml_base64, 'base64').toString('utf8'), 'utf8'));
 
         // console.log(yml);
@@ -51,6 +58,8 @@ const downloadMetadata = async function (req, res) {
 
         await jsonToFile(fileDir, dbJson);
         var option = {includeJs: true, tableTitle: 'Steedos', showLog: false};
+
+        // yupeng: 压缩文件夹为 base64 zip，然后将 zip 传给回调函数。
         compressFiles(deployDir, deployDir, tempDir, option, function(zipBuffer){
             try{
                 deleteFolderRecursive(tempDir);

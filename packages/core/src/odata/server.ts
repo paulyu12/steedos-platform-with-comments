@@ -69,9 +69,18 @@ export async function excuteObjectMethod(req, res) {
    return await meteorODataExpressMiddleware.excuteObjectMethod(req, res);
 }
 
+/* yupeng: req.params 参数样例：
+
+{
+  objectName: "objects",
+}
+
+*/
 async function _isMeteorDriver(req) {
    let urlParams = req.params;
    let key = urlParams.objectName;
+
+   // yupeng: 拿到“对象配置”，对象配置中有一个字段是 datasource，判断是否是 meteor
    let objectConfig = await getSteedosSchema().getObject(key).toConfig();
    return objectConfig.datasource === 'meteor';
    // return collection != null;
