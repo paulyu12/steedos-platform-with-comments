@@ -47,6 +47,8 @@ export const addObjectListenerConfig = (json: SteedosListenerConfig) => {
         object_name = json.listenTo()
     }
     if(object_name){
+
+        // yupeng: 根据 object_name 提取 SteedosObjectType(object_name)
         let object = getObjectConfig(object_name);
         if (object) {
             if(!object.listeners){
@@ -56,10 +58,13 @@ export const addObjectListenerConfig = (json: SteedosListenerConfig) => {
             const license = clone(json);
             license.name = json._id || getMD5(JSONStringify(json));
             object.listeners[license.name] = license
+
+            // yupeng: 把 trigger 部分整合到 SteedosbjectType 这个对象中 的 triggers 字段
             if(object.datasource === 'meteor'){
                 util.extend(object, {triggers: transformListenersToTriggers(object, license)})
             }
         }
+
         addLazyLoadListeners(object_name, Object.assign({}, json, {listenTo: object_name}));
         return Object.assign({}, json, {listenTo: object_name}); 
     }else{

@@ -27,6 +27,7 @@ let standardObjectsLoaded: boolean = false;
 let dbMetadataLoaing: boolean = false;
 
 const addDelayLoadExtendObjectConfig = function (extend: string, config: SteedosObjectTypeConfig){
+    // yupeng: delayLoadExtendObjectConfigQueue 被定义成全局变量，在系统整个运行的生命周期中都会存在
     if(!delayLoadExtendObjectConfigQueue[extend]){
         delayLoadExtendObjectConfigQueue[extend] = [];
     }
@@ -54,6 +55,22 @@ const extendOriginalObjectConfig = function(objectName: string, datasource: stri
     addOriginalObjectConfigs(objectName, datasource, clone(originalObjectConfig));
 }
 
+// yupeng: 给对象的 objectConfig 的 fields 字段中加一个 name 字段
+/*
+{
+    field1: {
+
+    }
+} 
+
+=> 
+
+{
+    field1: {
+        name: "field1"
+    }
+}
+*/
 const perfectObjectConfig = (objectConfig: SteedosObjectTypeConfig)=>{
     _.each(objectConfig.fields, (field: SteedosObjectTypeConfig, key: string)=>{
         if(!field.name){

@@ -3,6 +3,7 @@ import { getSteedosSchema } from "./schema";
 import { getObjectServiceName } from '../services/index';
 import { generateActionParams } from "../util";
 
+// yupeng: 工具方法，完成 insert，update，deleted 等操作后，帮助 objectName 对应的 objectService 发送事件
 export async function brokeEmitEvents(objectName: string, method: string, context: SteedosTriggerContextConfig) {
     if (method == 'insert' || method == 'update' || method == 'delete') {
         let schema = getSteedosSchema();

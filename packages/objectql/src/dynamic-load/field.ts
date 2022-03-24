@@ -40,6 +40,7 @@ export const addObjectFieldConfig = (objectName: string, json: SteedosFieldTypeC
         
         let _mf =  _.maxBy(_.values(object.fields), function (field) { return field.sort_no; });
         if(_mf && object.name){
+            // yupeng: fields_serial_number 用于给 fields 填充默认的 sort_no
             object.fields_serial_number = _mf.sort_no + 10;
         }
 

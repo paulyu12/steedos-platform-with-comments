@@ -109,6 +109,7 @@ async function registerTrigger(broker, data, meta){
         when = data.when;
     }
     for (const item of when) {
+        // yupeng: pattern trigger 就是 listenTo 监听的不只是某一个具体对象，而是根据一定的模式匹配很多对象，对它们都监听
         if(isPatternTrigger(data)){
             await registerPatternTrigger(broker, data, meta, item)
         }else{

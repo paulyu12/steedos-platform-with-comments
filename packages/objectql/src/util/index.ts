@@ -564,6 +564,7 @@ export const loadApps = (filePath: string)=>{
     return results
 }
 
+// yupeng: 将 source json 添加到 destination json 中，支持多层
 export function extend(destination: JsonMap, ...sources: JsonMap[]){
     _.each(sources, (source: JsonMap)=>{
         _.each(source, (v:never, k: string)=>{

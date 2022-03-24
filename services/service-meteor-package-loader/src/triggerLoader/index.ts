@@ -15,6 +15,8 @@ export async function load(broker: any, packagePath: string, packageServiceName:
     if (_.isEmpty(objTriggers)) {
         return;
     }
+
+    // yupeng?: 没看到哪个 trigger 会进入这个循环
     for (const ot of objTriggers) {
         if (_.has(ot, 'handler')) { // 新trigger格式
 

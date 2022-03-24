@@ -155,6 +155,8 @@ async function addObjectConfigs(broker, serviceName, objectConfigs) {
  * @param serviceName 软件包服务名称
  */
 export const loadPackageMetadatas = async function (packagePath: string, datasource: string, serviceName?: string) {
+
+    // yupeng: 这里的多个返回值的格式均为 json，是将软件包下面的 yml 文件、json 文件 load 到 json对象中并返回
     let packageObjects = loadPackageObjects(packagePath);
     const packageFields = loadPackageFields(packagePath);
     const packageListviews = loadPackageListViews(packagePath);
@@ -165,6 +167,34 @@ export const loadPackageMetadatas = async function (packagePath: string, datasou
 
     const packageObjectApiNames = _.map(packageObjects, 'name');
 
+    // yupeng: 遍历每一个 object in packageObjects 对象，然后将该 object 的其它元数据入 field, listview 等塞到该 object 的对象 json 中
+    // yupeng: 这样，每个 object 的全部信息都会整理到同一个 json 中
+    // yupeng: json 样例如下：
+    /* 
+        {
+            object1: {
+                name: ...,
+                apiName:...
+                fields: {
+
+                },
+                list_views: {
+
+                }
+            },
+            object2: {
+                name: ...,
+                apiName:...
+                fields: {
+
+                },
+                list_views: {
+                    
+                }
+            }
+            ...
+        }
+    */
     packageObjects = _.map(packageObjects, (packageObject) => {
         _.map(packageFields, (field) => {
             if (field && field.object_name == packageObject.name) {
@@ -202,13 +232,18 @@ export const loadPackageMetadatas = async function (packagePath: string, datasou
         })
         return packageObject;
     })
+
+
     for (const element of packageObjects) {
+        // yupeng: 对于每个 object 的 json, 给它添加 datasource 字段
         if (datasource) {
             element.datasource = datasource
         }
         if (!element.extend) {
             element.isMain = true;
         }
+
+        // yupeng: 给 object 的每个 field，添加 sort_no 字段（字段排序号 —— 可以在华炎网页新建字段时看到）
         let startNo = 10;
         _.each(element.fields, function (field) {
             if (!_.has(field, 'sort_no')) {
@@ -219,6 +254,21 @@ export const loadPackageMetadatas = async function (packagePath: string, datasou
         if (!element.fields) {
             element.fields = {}
         }
+
+        // yupeng?: 给这个对象（element.name）添加“懒加载” 的字段
+        /* 懒加载：lazy load fields, lazy load buttons：
+
+        假设:
+        软件包中有 student.object.yml
+        在页面上给 student对象新增了几个字段 (存储在db中)
+
+        启动服务是, db中的所有字段都已经拿到并准备给元数据中注册. 
+        此时存在一种情况, 软件包中的student.object.yml 还没识别到, 字段的主体不存在.
+        所以先将这部分存放到内存中
+
+        将对象发送到元数据中心时, 在内存中抓一次是否还有待加载的字段等数据合并后, 再注册到数据中心
+
+        */
         _.each(getLazyLoadFields(element.name), function (field) {
             util.extend(element.fields, { [field.name]: field })
         })
@@ -228,6 +278,8 @@ export const loadPackageMetadatas = async function (packagePath: string, datasou
         _.each(getLazyLoadButtons(element.name), function (action) {
             util.extend(element.actions, { [action.name]: action })
         })
+
+        // yupeng: 返回该 object 所有 fields 中 sort_no 值最大的 fields json
         let _mf = _.maxBy(_.values(element.fields), function (field) { return field.sort_no; });
         if (_mf && element.name) {
             element.fields_serial_number = _mf.sort_no + 10;

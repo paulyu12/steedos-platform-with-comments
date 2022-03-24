@@ -51,6 +51,8 @@ module.exports = {
                 const datasource = objectql.getDataSource(datasourceName);
                 await datasource.init();
 				await objectql.loadStandardMetadata(name, datasourceName);
+
+                // yupeng: 对所有软件包中元数据，为他们生成对应 Type 对象在内存中
                 await objectql.addAllConfigFiles(packagePath, datasourceName, name);
 				await triggerLoader.load(this.broker, packagePath, name);
 				return;
@@ -84,6 +86,8 @@ module.exports = {
             console.log(`service ${this.name} started`);
             return;
         }
+
+        // yupeng: 加载标准元数据（包括 db 中的元数据入 redis），加载 trigger
         await this.loadPackageMetadataFiles(path, this.name);
         console.timeEnd(`service ${this.name} started`)
         // console.log(`service ${this.name} started`);

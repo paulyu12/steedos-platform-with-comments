@@ -126,6 +126,7 @@ module.exports = {
 			sendPackageFlowToDb(this.broker, _path, this.name)
 		});
         
+        // yupeng: loadPackageMetadataFiles 加载定义在 /package/objectql/src/types 下的标准元数据
         await this.loadPackageMetadataFiles(_path, this.name, datasource);
         if(isPackage !== false){
             try {

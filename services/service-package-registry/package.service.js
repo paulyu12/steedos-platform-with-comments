@@ -621,6 +621,8 @@ module.exports = {
 			if (Object.hasOwnProperty.call(installPackages, name)) {
 				const _packageInfo = installPackages[name];
 				const metadata = await getPackageMetadata(_packageInfo.path);
+
+				// yupeng: service-packages.install 调用 metadata-service 提供的缓存操作方法，将软件包中元数据写入到缓存中
 				await this.broker.call(`@steedos/service-packages.install`, {
 					serviceInfo: {
 						name: name, 
