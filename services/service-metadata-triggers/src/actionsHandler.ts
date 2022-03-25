@@ -101,6 +101,7 @@ async function getPatternTriggers(ctx){
     return patternTriggers;
 }
 
+// yupeng: 实际就是将 trigger 对应的 json 写入到缓存中
 async function registerTrigger(broker, data, meta){
     let when = []
     if(_.isString(data.when)){
@@ -116,6 +117,100 @@ async function registerTrigger(broker, data, meta){
             await broker.call('metadata.addServiceMetadata', {data: data}, {meta: Object.assign({}, meta, {metadataType: METADATA_TYPE, metadataApiName: `${data.listenTo}.${item}.${data.name}`})})
             await broker.call('metadata.add', {key: cacherKey(data.listenTo, item, data.name), data: data}, {meta: meta});
         }
+
+        // yupeng: 上面这里是将 trigger 插入到缓存中，以 key 为 net-44924.$METADATA.~packages-standard-objects.objects.object_triggers 的记录为例
+        /*
+        {
+            "nodeIds": [
+                "99-1-188-216.lightspeed.tukrga.sbcglobal.net-44924"
+            ],
+            "metadataType": "objects",
+            "metadataApiName": "object_triggers",
+            "metadataServiceName": "~packages-standard-objects",
+            "metadata": {
+                "name": "object_triggers",
+                "icon": "apex",
+                "label": "Object Triggers",
+                "hidden": true,
+                "fields": {
+                    "name": {
+                        "type": "text",
+                        "label": "Name",
+                        "searchable": true,
+                        "index": true,
+                        "required": true,
+                        "sort_no": 10
+                    },
+                    "object": {
+                        "label": "Object",
+                        "type": "master_detail",
+                        "reference_to": "objects",
+                        "reference_to_field": "name",
+                        "required": true,
+                        "sort_no": 20,
+                        "_optionsFunction": "function anonymous(\n) {\n\n        var _options;\n\n        _options = [];\n\n        _.forEach(Creator.objectsByName, function (o, k) {\n          return _options.push({\n            label: o.label,\n            value: k,\n            icon: o.icon\n          });\n        });\n\n        return _options;\n      \n}"
+                    },
+                    "when": {
+                        "label": "Execution Time Option",
+                        "type": "lookup",
+                        "required": true,
+                        "sort_no": 30,
+                        "_optionsFunction": "function anonymous(\n) {\n\n        return [{\n          label: \"新增记录之前\",\n          value: \"beforeInsert\",\n          icon: \"asset_relationship\"\n        }, {\n          label: \"新增记录之后\",\n          value: \"afterInsert\",\n          icon: \"asset_relationship\"\n        }, {\n          label: \"修改记录之前\",\n          value: \"beforeUpdate\",\n          icon: \"asset_relationship\"\n        }, {\n          label: \"修改记录之后\",\n          value: \"afterUpdate\",\n          icon: \"asset_relationship\"\n        }, {\n          label: \"删除记录之前\",\n          value: \"beforeDelete\",\n          icon: \"asset_relationship\"\n        }, {\n          label: \"删除记录之后\",\n          value: \"afterDelete\",\n          icon: \"asset_relationship\"\n        }, {\n          label: \"查下记录之前\",\n          value: \"beforeFind\",\n          icon: \"asset_relationship\"\n        }];\n      \n}"
+                    },
+                    "is_enable": {
+                        "label": "Enable",
+                        "type": "boolean",
+                        "sort_no": 40
+                    },
+                    "todo": {
+                        "label": "Execute Script  <a target=\"_blank\" href=\"https://developer.steedos.com/developer/object_trigger\">View Help</a>",
+                        "type": "textarea",
+                        "required": true,
+                        "is_wide": true,
+                        "sort_no": 50
+                    }
+                },
+                "paging": {
+                    "enabled": false
+                },
+                "list_views": {
+                    "all": {
+                        "columns": [
+                            "name",
+                            "object",
+                            "when",
+                            "is_enable"
+                        ],
+                        "label": "All",
+                        "filter_scope": "space"
+                    }
+                },
+                "permission_set": {
+                    "user": {
+                        "allowCreate": false,
+                        "allowDelete": false,
+                        "allowEdit": false,
+                        "allowRead": false,
+                        "modifyAllRecords": false,
+                        "viewAllRecords": false
+                    },
+                    "admin": {
+                        "allowCreate": true,
+                        "allowDelete": true,
+                        "allowEdit": true,
+                        "allowRead": true,
+                        "modifyAllRecords": true,
+                        "viewAllRecords": true
+                    }
+                },
+                "__filename": "/Users/paulyu/Desktop/Project-aPaaS/steedos-platform/packages/standard-objects/object-database/object_triggers.object.yml",
+                "datasource": "meteor",
+                "isMain": true,
+                "actions": {},
+                "fields_serial_number": 60
+            }
+        }
+        */
     }
     return true
 }
