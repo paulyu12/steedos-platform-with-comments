@@ -198,6 +198,8 @@ export const addObjectConfig = async (objectConfig: SteedosObjectTypeConfig, dat
         if(!objectConfig.extend){
             objectConfig.isMain = true;
         }
+        
+        // yupeng: 最终调用到 metadata-register/object.ts 中的 addObjectConfig 函数
         await getSteedosSchema().metadataRegister.addObjectConfig(serviceName, objectConfig);
     }
     // if(true){return;}
@@ -300,11 +302,23 @@ export const removeObjectListenerConfig = (_id, listenTo, when)=>{
 }
 
 export const loadStandardMetadata = async (serviceName: string, datasourceApiName: string) => {
+    
+    // yupeng: 这里是加载 /packages/standard-objects 目录下面的标准元数据
+    // yupeng: loadStandardBaseObjects 是加载 base.object.yaml, base.object.js 以及基础触发器
+    // yupeng: 构造一个 ObjectConfig 结构，然后填充该结构。然后将该结构传给 objects 微服务的 add 方法，添加到缓存中
     await loadStandardBaseObjects(serviceName);
+
+    // yupeng: dbMetadataLoaing 是全局变量，避免重复加载
     if (dbMetadataLoaing != true) {
         dbMetadataLoaing = true;
+
+        // yupeng: 将标准简档如 admin, user, customer 注册到缓存中
         await loadStandardProfiles(serviceName);
+
+        // yupeng：将标准权限集如 none 注册到缓存中
         await loadStandardPermissionsets(serviceName);
+
+        // yupeng: 加载数据库（一般为 mongoDB）中的元数据，并注册到缓存中
         await loadDbMetadatas(datasourceApiName);
     }
 }
@@ -313,9 +327,11 @@ export const loadDbMetadatas = async (datasourceApiName: string) => {
     if(datasourceApiName === 'default' || datasourceApiName === 'meteor'){
         const datasource = getDataSource(datasourceApiName)
         if(datasource && datasourceApiName === 'default'){
+            // 初始化 typeorm，用于处理关系型数据库的查询
             await datasource.initTypeORM();
         }
         if(datasource){
+            // yupeng: 调用 meteor 的方法在 mongo 中创建表，如 app 就创建 app 表。然后将元数据信息注册到缓存中
             await preloadDBApps(datasource);
             await preloadDBTabs(datasource);
             await preloadDBObjectLayouts(datasource);
@@ -328,6 +344,7 @@ export const loadDbMetadatas = async (datasourceApiName: string) => {
     }
 }
 
+// yupeng: 加载 base.object.yml, base.object.js, 多个 trigger 到内存中
 export const loadStandardBaseObjects = async (serviceName: string) => {
     
     if (standardObjectsLoaded)
@@ -336,12 +353,18 @@ export const loadStandardBaseObjects = async (serviceName: string) => {
     standardObjectsLoaded = true;
 
     let standardObjectsDir = path.dirname(require.resolve("@steedos/standard-objects"))
+
+    // yupeng: 将 base.object.yml 中的内容转换成 ObjectConfig 然后保存在 _objectConfigs 列表中
     let baseObject = util.loadFile(path.join(standardObjectsDir, "base.object.yml"))
     baseObject.name = MONGO_BASE_OBJECT;
     await addObjectConfig(baseObject, SYSTEM_DATASOURCE, serviceName);
+
+    // yupeng: 将 base.object.js 中的内容转换成 ObjectConfig 然后保存在 _objectConfigs 列表中
     let baseObjectJs = util.loadFile(path.join(standardObjectsDir, "base.object.js"))
     baseObjectJs.extend = MONGO_BASE_OBJECT;
     await addObjectConfig(baseObjectJs, SYSTEM_DATASOURCE, serviceName);
+
+
     const baseTriggers = ['base.trigger.js', 'base.autonumber.trigger.js','base.masterDetail.trigger.js','base.objectwebhooks.trigger.js','base.recordFieldAudit.trigger.js','base.recordRecentView.trigger.js','base.tree.trigger.js','base.calendar.trigger.js'];
     _.forEach(baseTriggers, function(triggerFileName){
         let baseObjectTrigger = util.loadFile(path.join(standardObjectsDir, triggerFileName))

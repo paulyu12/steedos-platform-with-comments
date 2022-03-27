@@ -263,7 +263,6 @@ const createObjectData = async function (req: Request, res: Response) {
             res.status(401).send(setErrorMessage(404, collection, key));
         }
 
-        // yupeng：
         let permissions = await collection.getUserObjectPermission(userSession);
         if (permissions.allowCreate) {
             bodyParams.space = spaceId;

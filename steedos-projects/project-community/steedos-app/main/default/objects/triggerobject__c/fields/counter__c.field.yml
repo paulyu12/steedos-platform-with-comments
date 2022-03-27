@@ -1,0 +1,6 @@
+name: counter__c
+label: counter
+precision: 18
+scale: 2
+sort_no: 110
+type: number

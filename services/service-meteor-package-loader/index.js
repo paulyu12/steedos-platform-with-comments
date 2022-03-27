@@ -50,10 +50,16 @@ module.exports = {
 				packagePath = path.join(packagePath, '**');
                 const datasource = objectql.getDataSource(datasourceName);
                 await datasource.init();
+
+                // yupeng: 这里是加载 /packages/standard-objects 下面的标准元数据
+                // yupeng: 代码位于 objectql/src/types/object_dynamic_load.ts 中
 				await objectql.loadStandardMetadata(name, datasourceName);
 
-                // yupeng: 对所有软件包中元数据，为他们生成对应 Type 对象在内存中
+                // yupeng: 对所有软件包（根据 .steedos/steedos-packages.yml 文件中的配置）中的元数据，为他们生成对应 Type 对象在内存中
+                // yupeng: addAllConfigFiles 函数位于 objectql/src/types/config.ts
                 await objectql.addAllConfigFiles(packagePath, datasourceName, name);
+
+                // yupeng: 将本地软件包中的 trigger.js 文件读进来，并且通过 /service/service-metadata-triggers 微服务加载进来
 				await triggerLoader.load(this.broker, packagePath, name);
 				return;
 			}).promise();

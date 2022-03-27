@@ -330,6 +330,9 @@ export class SteedosObjectType extends SteedosObjectProperties {
 
     private async runTirgger(trigger: SteedosTriggerType, context: SteedosTriggerContextConfig) {
         let object_name = this.name
+
+        // yupeng: SteedosTriggerType 类型的实例中有个 todo 函数，这里是调用 todo 函数。返回实例的 _todo 属性，该属性的值是函数
+        // yupeng: \packages\objectql\src\types\trigger.ts 
         let event = trigger.todo
         let todoWrapper = async function (...args) {
             // Object.setPrototypeOf(thisArg, Object.getPrototypeOf(trigger))
@@ -1420,6 +1423,7 @@ export class SteedosObjectType extends SteedosObjectProperties {
             context.id = args[1]
         }
 
+        // yupeng: 从 insert 请求的包中获取到要插入的 document
         if (method === 'insert' || method === 'update') {
             context.doc = args[args.length - 2]
         }

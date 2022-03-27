@@ -12,6 +12,8 @@ declare var Creator: any;
 export const preloadDBObjectFields = async function(datasource: SteedosDataSourceType){
     const tableName = "object_fields";
     if(datasource.name === 'meteor'){
+
+        // yupeng: 通过 meteor 的 api 方法操作 mongo 创建 collection
         Creator.Collections[tableName] = Creator.createCollection({name: tableName});
     }
     let fields: any = await datasource.find(tableName, {});
@@ -34,10 +36,14 @@ export const preloadDBObjectButtons = async function(datasource: SteedosDataSour
 export const preloadDBApps = async function(datasource: SteedosDataSourceType){
     const tableName = "apps";
     if(datasource.name === 'meteor'){
+
+        // yupeng: 通过 meteor 的 api 方法操作 mongo 创建 collection
         Creator.Collections[tableName] = Creator.createCollection({name: tableName});
     }
     let apps: any = await datasource.find(tableName , {filters: ['visible','=',true]});
     for await (const element of apps) {
+
+        // yupeng: 将 app 元数据添加到缓存中
         await addAppConfig(element, `~database-${tableName}`);
     }
 }

@@ -127,15 +127,24 @@ export const getConfig = (objectName: string, _id: string) => {
 
 export const addAllConfigFiles = async (filePath, datasourceApiName, serviceName) => {
     addRouterFiles(filePath);
+
+    // yupeng: 加载软件包中的 objects, fields, profile 等元数据到缓存
     await addObjectConfigFiles(filePath, datasourceApiName, serviceName);
+
+    // yupeng: 加载软件包中的 apps 元数据到缓存
     await addAppConfigFiles(filePath, serviceName);
+
+    // yupeng?: 
     await registerPackageQueries(filePath, serviceName);
+
+    // yupeng: 图表，页面，选项卡，共享规则，限制规则等，加载到缓存中
     await registerPackageCharts(filePath, serviceName);
     await registerPackagePages(filePath, serviceName);
     await registerPackageTabs(filePath, serviceName);
     await registerPackageShareRules(filePath, serviceName);
     await registerPackageRestrictionRules(filePath, serviceName);
     
+    // yupeng?: 加载 meteor client/server script
     addClientScriptFiles(filePath);
     addServerScriptFiles(filePath);
     // addObjectI18nFiles(filePath);
@@ -146,6 +155,8 @@ export const addAllConfigFiles = async (filePath, datasourceApiName, serviceName
     addConfigFiles('flow', filePath);
     addConfigFiles('form', filePath);
     addConfigFiles('dashboard', filePath);
+
+    // yupeng: 如果软件包目录下面有数据文件（以 json 扩展名结尾），则加载到内存中 _objectsData 数组中（并没有存到缓存中）
     addObjectDataFiles(filePath);
 }
 
